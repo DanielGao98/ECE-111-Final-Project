@@ -23,6 +23,7 @@ logic [ 7:0] num_blocks;
 logic        cur_we;
 logic [15:0] cur_addr;
 logic [31:0] cur_write_data;
+logic [511:0] curr_block;
 
 
 // SHA256 K constants
@@ -58,11 +59,11 @@ function logic [255:0] sha256_op(input logic [31:0] a, b, c, d, e, f, g, h, w,
 begin
     S1 = rightrotate(e, 6) ^ rightrotate(e, 11) ^ rightrotate(e, 25);
     // Student to add remaning code below
-    ch = 
-    t1 = 
-    S0 = 
-    maj = 
-    t2 = 
+    ch = (e && f) ^ (!e && g);
+    t1 = h + S1 + ch + K[t] + w;
+    S0 = rightrotate(a, 2) ^ rightrotate(a, 13) ^ rightrotate(a, 22);
+    maj = (a && b) ^ (a && c) ^ (b && c);
+    t2 = S0 + maj;
     sha256_op = {t1 + t2, a, b, c, d + t1, e, f, g};
 end
 endfunction
@@ -89,6 +90,7 @@ assign mem_write_data = cur_write_data;
 function logic [31:0] rightrotate(input logic [31:0] x,
                                   input logic [ 7:0] r);
    // Student to add function implementation
+	((x >> r) | (x << (32-r)));
 
 
 endfunction
@@ -144,17 +146,28 @@ begin
     BLOCK: begin
 	// Fetch message in 512-bit block size
 	// For each of 512-bit block initiate hash value computation
-       
-
-
-
-   
-
-
-
-
-    
-
+	
+		//fetch block
+		w[0] <= mem[cur_addr];
+		w[1] <= mem[cur_addr+1];
+		w[2] <= mem[cur_addr+2];
+		w[3] <= mem[cur_addr+3];
+		w[4] <= mem[cur_addr+4];
+		w[5] <= mem[cur_addr+5];
+		w[6] <= mem[cur_addr+6];
+		w[7] <= mem[cur_addr+7];
+		w[8] <= mem[cur_addr+8];
+		w[9] <= mem[cur_addr+9];
+		w[10] <= mem[cur_addr+10];
+		w[11] <= mem[cur_addr+11];
+		w[12] <= mem[cur_addr+12];
+		w[13] <= mem[cur_addr+13];
+		w[14] <= mem[cur_addr+14];
+		w[15] <= mem[cur_addr+15];
+		
+	
+		//go to compute
+		state <= COMPUTE;  
     end
 
     // For each block compute hash function
@@ -164,6 +177,12 @@ begin
     COMPUTE: begin
 	// 64 processing rounds steps for 512-bit block 
         if (i <= 64) begin
+		  
+		  //0-15 shit
+		  
+		  //16-63 shit
+		  
+		  //go back to block
 
 
 
@@ -185,6 +204,7 @@ begin
     // h0 to h7 after compute stage has final computed hash value
     // write back these h0 to h7 to memory starting from output_addr
     WRITE: begin
+		//write to output memory
    
 
 
