@@ -14,7 +14,7 @@ enum logic [1:0] {IDLE, BLOCK, COMPUTE, WRITE} state;
 // or modify these variables. Code below is more as a reference.
 
 // Local variables
-logic [31:0] w[16];
+logic [31:0] w[17];
 logic [31:0] h0, h1, h2, h3, h4, h5, h6, h7;
 logic [31:0] dig_0, dig_1, dig_2, dig_3, dig_4, dig_5, dig_6, dig_7;
 logic [ 7:0] i, j;
@@ -26,6 +26,7 @@ logic [31:0] cur_write_data;
 
 logic proc_e;
 logic proc_rstn;
+logic proc_done;
 
 parameter size = 20; // hard-code it to 20 words
 assign num_blocks = determine_num_blocks(size); // assume no more than 256 blocks = 16,384 bytes
@@ -46,10 +47,10 @@ assign mem_addr = cur_addr + offset;
 assign mem_we = cur_we;
 assign mem_write_data = cur_write_data;
 
-sha_256_processor proc(.clk(clk), .start(proc_e), .rstn(proc_rstn), .count(j), .h0(h0), .h1(h1), .h2(h2), .h3(h3), .h4(h4)
+sha_256_processor proc(.clk(clk), .start(proc_e), .rstn(proc_rstn), .count(j), .h0(h0), .h1(h1), .h2(h2), .h3(h3), .h4(h4),
 .h5(h5), .h6(h6), .h7(h7), .w0(w[0]), .w1(w[1]), .w2(w[2]), .w3(w[3]), .w4(w[4]), .w5(w[5]), .w6(w[6]), .w7(w[7]), .w8(w[8]),
 .w9(w[9]), .w10(w[10]), .w11(w[11]), .w12(w[12]), .w13(w[13]), .w14(w[14]), .w15(w[15]), .out_h0(dig_0), .out_h1(dig_1), .out_h2(dig_2),
-.out_h3(dig_3), .out_h4(dig_4), .out_h5(dig_5), .out_h6(dig_6), .out_h7(dig_7)); 
+.out_h3(dig_3), .out_h4(dig_4), .out_h5(dig_5), .out_h6(dig_6), .out_h7(dig_7), .done(proc_done)); 
 
 // SHA-256 FSM 
 // Get a BLOCK from the memory, COMPUTE Hash output using SHA256 function
@@ -59,6 +60,8 @@ begin
   if (!reset_n) begin
     cur_we <= 1'b0;
     state <= IDLE;
+	 proc_rstn <= 0;
+	 proc_e <= 0;
   end 
   else case (state)
     IDLE: begin 
@@ -90,16 +93,16 @@ begin
     // Get a BLOCK from the memory, COMPUTE Hash output using SHA256 function    
     // and write back hash value back to memory
     BLOCK: begin
-	 ` if (j >= num_blocks)
+	   if (j >= num_blocks)
 		begin
 			//jump to write
 			i <= 0;
 			offset <= 0;
-			curr_we <= 1;
+			cur_we <= 1;
 			state <= WRITE;
 		end
 		
-		else if (i <= 16)
+		else if (i < 16)
 		begin
 			w[i] <= mem_read_data;
 			i <= i+1;
@@ -146,7 +149,7 @@ begin
 		if (proc_done == 1)
 		begin
 			state <= BLOCK;
-			j < j+1;
+			j <= j+1;
 		end
 		else
 		begin
@@ -160,6 +163,7 @@ begin
     // write back these h0 to h7 to memory starting from output_addr
     WRITE: begin
 		//write to output memory
+		cur_we = 1;
 		if (i < 8)
 		begin
 			case (i)
