@@ -4,14 +4,14 @@ module sha_256_processor(
 	input logic rstn,
 	input logic count,
 	
-	input logic[15:0] h0,
-	input logic[15:0] h1,
-	input logic[15:0] h2,
-	input logic[15:0] h3,
-	input logic[15:0] h4,
-	input logic[15:0] h5,
-	input logic[15:0] h6,
-	input logic[15:0] h7,
+	input logic[31:0] h0,
+	input logic[31:0] h1,
+	input logic[31:0] h2,
+	input logic[31:0] h3,
+	input logic[31:0] h4,
+	input logic[31:0] h5,
+	input logic[31:0] h6,
+	input logic[31:0] h7,
 	
 	input logic[31:0] w0,
 	input logic[31:0] w1;
@@ -29,20 +29,22 @@ module sha_256_processor(
 	input logic[31:0] w13;
 	input logic[31:0] w14,
 	input logic[31:0] w15;
-	input logic[31:0] w16,
-	input logic[31:0] w17;
 	
-	input logic[15:0] out_h0,
-	input logic[15:0] out_h1,
-	input logic[15:0] out_h2,
-	input logic[15:0] out_h3,
-	input logic[15:0] out_h4,
-	input logic[15:0] out_h5,
-	input logic[15:0] out_h6,
-	input logic[15:0] out_h7,
+	output logic[31:0] out_h0,
+	output logic[31:0] out_h1,
+	output logic[31:0] out_h2,
+	output logic[31:0] out_h3,
+	output logic[31:0] out_h4,
+	output logic[31:0] out_h5,
+	output logic[31:0] out_h6,
+	output logic[31:0] out_h7,
+	
+	output logic done;
 )
 
 enum logic [1:0] {IDLE, READ, PROCESS, WRITE} state;
+logic [31:0] a, b, c, d, e, f, g, h;
+logic [31:0] op_ret [7];
 
 // SHA256 K constants
 parameter int k[0:63] = '{
@@ -62,7 +64,6 @@ function logic [255:0] sha256_op(input logic [31:0] a, b, c, d, e, f, g, h, w,
     logic [31:0] S1, S0, ch, maj, t1, t2; // internal signals
 begin
     S1 = rightrotate(e, 6) ^ rightrotate(e, 11) ^ rightrotate(e, 25);
-    // Student to add remaning code below
     ch = (e && f) ^ (!e && g);
     t1 = h + S1 + ch + K[t] + w;
     S0 = rightrotate(a, 2) ^ rightrotate(a, 13) ^ rightrotate(a, 22);
@@ -72,15 +73,6 @@ begin
 end
 endfunction
 
-// Right Rotation Example : right rotate input x by r
-// Lets say input x = 1111 ffff 2222 3333 4444 6666 7777 8888
-// lets say r = 4
-// x >> r  will result in : 0000 1111 ffff 2222 3333 4444 6666 7777 
-// x << (32-r) will result in : 8888 0000 0000 0000 0000 0000 0000 0000
-// final right rotate expression is = (x >> r) | (x << (32-r));
-// (0000 1111 ffff 2222 3333 4444 6666 7777) | (8888 0000 0000 0000 0000 0000 0000 0000)
-// final value after right rotate = 8888 1111 ffff 2222 3333 4444 6666 7777
-// Right rotation function
 function logic [31:0] rightrotate(input logic [31:0] x,
                                   input logic [ 7:0] r);
    // Student to add function implementation
@@ -98,6 +90,7 @@ begin
 	end
 	case(state)
 	IDLE:begin
+		done <= 0;
 		out_h0 <= 0;
 		out_h1 <= 0;
 		out_h2 <= 0;
@@ -107,31 +100,56 @@ begin
 		out_h6 <= 0;
 		out_h7 <= 0;
 		
-		//Initialize hash values:
-      h0 <= 32'h6a09e667;
-      h1 <= 32'hbb67ae85;
-      h2 <= 32'h3c6ef372;
-      h3 <= 32'ha54ff53a;
-      h4 <= 32'h510e527f;
-      h5 <= 32'h9b05688c;
-      h6 <= 32'h1f83d9ab;
-      h7 <= 32'h5be0cd19;
+		a <= 0;
+		b <= 0;
+		c <= 0; 
+		d <= 0;
+		e <= 0;
+		f <= 0;
+		g <= 0;
+		h <= 0;
 		
+		if (start)
+		begin
+			state <= READ;
+		end
 	end
 	
 	READ:begin
+		a <= h0;
+		b <= h1;
+		c <= h2;
+		d <= h3;
+		e <= h4;
+		f <= h5;
+		g <= h6;
+		h <= h7;
+		
 		
 	end
 	
 	PROCESS:begin
-	if (i > 15) begin
-					logic S0 = rightrotate(w[i - 15], 7) ^ rightrotate(w[i-15], 18) ^ (w[i-15] >> 3);
-					logic S1 = rightrotate(w[i - 2], 17) ^ rightrotate(w[i-2], 19) ^ (w[i-2] >> 10);
-					w[i] = w[i-16] + S0 + w+[i-7] + S1;
-				end
+		op_ret = sha_256_op(a, b, c, d, e, f, g, h);
+	
+	
+		if (i > 15) 
+		begin
+			logic S0 = rightrotate(w[i - 15], 7) ^ rightrotate(w[i-15], 18) ^ (w[i-15] >> 3);
+			logic S1 = rightrotate(w[i - 2], 17) ^ rightrotate(w[i-2], 19) ^ (w[i-2] >> 10);
+			w[i] = w[i-16] + S0 + w+[i-7] + S1;
+		end
 	end
 	
 	WRITE:begin
+		out_h0 <= h0;
+		out_h1 <= h1;
+		out_h2 <= h2;
+		out_h3 <= h3;
+		out_h4 <= h4;
+		out_h5 <= h5;
+		out_h6 <= h6;
+		out_h7 <= h7;
+		
 	end
 end
 
