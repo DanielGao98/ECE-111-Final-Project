@@ -46,7 +46,8 @@ enum logic [1:0] {IDLE, READ, PROCESS, WRITE} state;
 logic [31:0] a, b, c, d, e, f, g, h;
 logic [255:0] op_ret;
 logic [31:0] w [65];
-logic S0, S1, i;
+logic S0, S1;
+logic [5:0] i;
 
 // SHA256 K constants
 parameter int k[0:63] = '{
@@ -87,112 +88,120 @@ begin
 	if (!rstn)
 	begin
 		state <= IDLE;
+		
 	end
 	else case (state)
 	IDLE:begin
-		done <= 0;
-		out_h0 <= 0;
-		out_h1 <= 0;
-		out_h2 <= 0;
-		out_h3 <= 0;
-		out_h4 <= 0;
-		out_h5 <= 0;
-		out_h6 <= 0;
-		out_h7 <= 0;
+		done = 0;
+		out_h0 = 0;
+		out_h1 = 0;
+		out_h2 = 0;
+		out_h3 = 0;
+		out_h4 = 0;
+		out_h5 = 0;
+		out_h6 = 0;
+		out_h7 = 0;
 		
-		a <= 0;
-		b <= 0;
-		c <= 0; 
-		d <= 0;
-		e <= 0;
-		f <= 0;
-		g <= 0;
-		h <= 0;
+		a = 0;
+		b = 0;
+		c = 0; 
+		d = 0;
+		e = 0;
+		f = 0;
+		g = 0;
+		h = 0;
 		
-		i <= 0;
+		i = 0;
+		
+		done = 0;
+		
 		if (start)
 		begin
-			state <= READ;
+			state = READ;
 		end
 	end
 	
 	READ:begin
-		a <= h0;
-		b <= h1;
-		c <= h2;
-		d <= h3;
-		e <= h4;
-		f <= h5;
-		g <= h6;
-		h <= h7;
+		a = h0;
+		b = h1;
+		c = h2;
+		d = h3;
+		e = h4;
+		f = h5;
+		g = h6;
+		h = h7;
 		
-		w[1] = w0;
-		w[2] = w1;
-		w[3] = w2;
-		w[4] = w3;
-		w[5] = w4;
-		w[6] = w5;
-		w[7] = w6;
-		w[8] = w7;
-		w[9] = w8;
-		w[10] = w9;
-		w[11] = w10;
-		w[12] = w11;
-		w[13] = w12;
-		w[14] = w13;
-		w[15] = w14;
-		w[16] = w15;
+		w[0] = w0;
+		w[1] = w1;
+		w[2] = w2;
+		w[3] = w3;
+		w[4] = w4;
+		w[5] = w5;
+		w[6] = w6;
+		w[7] = w7;
+		w[8] = w8;
+		w[9] = w9;
+		w[10] = w10;
+		w[11] = w11;
+		w[12] = w12;
+		w[13] = w13;
+		w[14] = w14;
+		w[15] = w15;
 		
-		state <= PROCESS;
+		state = PROCESS;
 		
 	end
 	
 	PROCESS:begin
 		//65 cycles
-		if (i <= 64)
+		if (i < 64)
 		begin
-			a <= op_ret[31:0];
-			b <= op_ret[63:32];
-			c <= op_ret[95:64];
-			d <= op_ret[127:96];
-			e <= op_ret[159:128];
-			f <= op_ret[191:160];
-			g <= op_ret[223:192];
-			h <= op_ret[255:224];
-			
-			op_ret <= sha256_op(a, b, c, d, e, f, g, h, w[i], i);
-			
+		
 			if (i > 15) 
 			begin
-				S0 <= rightrotate(w[i - 15], 7) ^ rightrotate(w[i-15], 18) ^ (w[i-15] >> 3);
-				S1 <= rightrotate(w[i - 2], 17) ^ rightrotate(w[i-2], 19) ^ (w[i-2] >> 10);
-				w[i] <= w[i-16] + S0 + w[i-7] + S1;
+				S0 = rightrotate(w[i - 15], 7) ^ rightrotate(w[i-15], 18) ^ (w[i-15] >> 3);
+				S1 = rightrotate(w[i - 2], 17) ^ rightrotate(w[i-2], 19) ^ (w[i-2] >> 10);
+				w[i] = w[i-16] + S0 + w[i-7] + S1;
 			end
-				state <= PROCESS;		
+			
+			
+			op_ret = sha256_op(a, b, c, d, e, f, g, h, w[i], i);
+			
+			a = op_ret[31:0];
+			b = op_ret[63:32];
+			c = op_ret[95:64];
+			d = op_ret[127:96];
+			e = op_ret[159:128];
+			f = op_ret[191:160];
+			g = op_ret[223:192];
+			h = op_ret[255:224];
+			
+			i = i + 1;
+			state = PROCESS;		
 			
 		end
 		
 		else
 		begin
-			state <= WRITE;
+			state = WRITE;
 		end
 		
 		
 	end
 	
 	WRITE:begin
-		out_h0 <= a;
-		out_h1 <= b;
-		out_h2 <= c;
-		out_h3 <= d;
-		out_h4 <= e;
-		out_h5 <= f;
-		out_h6 <= g;
-		out_h7 <= h;
+		out_h0 = a;
+		out_h1 = b;
+		out_h2 = c;
+		out_h3 = d;
+		out_h4 = e;
+		out_h5 = f;
+		out_h6 = g;
+		out_h7 = h;
 		
-		done <= 1;
-		i <= 0;
-		state <= IDLE;
+		done = 1;
+		i = 0;
+		state = IDLE;
 		
 	end
 	endcase
