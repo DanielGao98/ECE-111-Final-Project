@@ -12,10 +12,11 @@ logic [31:0] hout[num_nonces];
 logic [15:0] offset; // in word address
 logic [31:0] final_out[8];
 
+logic [31:0] nonce;
 
 logic proc1_rstn, proc2_rstn, proc3_rstn;
 logic [31:0] w[19];
-logic [31:0] h0_0, h1_0, h2_0, h3_0, h4_0, h5_0, h6_0, h7_0, h0_1, h1_1, h2_1, h3_1, h4_1, h5_1, h6_1, h7_1, 
+logic [31:0] h0_2, h1_2, h2_2, h3_2, h4_2, h5_2, h6_2, h7_2, h0_1, h1_1, h2_1, h3_1, h4_1, h5_1, h6_1, h7_1, 
 h0_3, h1_3, h2_3, h3_3, h4_3, h5_3, h6_3, h7_3;
 logic [31:0] phase1_out0, phase1_out1, phase1_out2, phase1_out3, phase1_out4, phase1_out5, phase1_out6, phase1_out7,
 phase2_out1, phase2_out2, phase2_out3, phase2_out4, phase2_out5, phase2_out6, phase2_out7, phase2_out0, 
@@ -28,6 +29,7 @@ logic [31:0] cur_write_data;
 
 logic [31:0] zero_word;
 logic [31:0] one_word;
+
 
 logic proc1_e, proc2_e, proc3_e;
 logic proc1_done, proc2_done, proc3_done;
@@ -102,17 +104,22 @@ begin
 		proc1_e <= 0;
 		proc2_e <= 0;
 		proc3_e <= 0;
+		
+		//nonce <= 32'b0;
+		zero_word <= 32'b0;
+		one_word <= 31'b1;
 		if (start)
 		begin
 				i <= 0;
+				j <= 0;
 				offset <= 0;
 				cur_we <= 0;
 				cur_addr <= message_addr;
 				cur_write_data <= 32'h0;
 				state <= READ;
-				proc1_rstn <= 0;
-				proc2_rstn <= 0;
-				proc3_rstn <= 0;
+				proc1_rstn <= 1;
+				proc2_rstn <= 1;
+				proc3_rstn <= 1;
 				
 				proc1_e <= 0;
 				proc2_e <= 0;
@@ -148,6 +155,7 @@ begin
 			if (proc1_done == 1)
 			begin
 				proc1_e <= 0;
+				proc1_rstn <= 1;
 				proc2_e <= 1;
 		
 				state <= PROCESS;
@@ -173,6 +181,7 @@ begin
 			end
 		else
 			begin
+				j <= j+1;
 				state <= PROCESS;
 			end
 		end
