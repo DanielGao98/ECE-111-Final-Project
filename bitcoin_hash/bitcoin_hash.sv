@@ -107,7 +107,7 @@ begin
 		
 		//nonce <= 32'b0;
 		zero_word <= 32'b0;
-		one_word <= 31'b10000000;
+		one_word <= 32'b10000000;
 		if (start)
 		begin
 				i <= 0;
