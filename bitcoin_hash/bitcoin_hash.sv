@@ -7,8 +7,37 @@ module bitcoin_hash (input logic        clk, reset_n, start,
 
 parameter num_nonces = 16;
 
-logic [ 4:0] state;
+logic proc1_rstn, proc2_rstn, proc3_rstn;
+logic [31:0] w[19];
+logic [31:0] h0_0, h1_0, h2_0, h3_0, h4_0, h5_0, h6_0, h7_0, h0_1, h1_1, h2_1, h3_1, h4_1, h5_1, h6_1, h7_1, 
+h0_3, h1_3, h2_3, h3_3, h4_3, h5_3, h6_3, h7_3;
+logic [31:0] phase1_out1, phase1_out2, phase1_out3, phase1_out4, phase1_out5, phase1_out6, phase1_out7,
+phase2_out1, phase2_out2, phase2_out3, phase2_out4, phase2_out5, phase2_out6, phase2_out7,
+phase3_out1, phase3_out2, phase3_out3, phase3_out4, phase3_out5, phase3_out6, phase3_out7;
+logic [ 7:0] i, j;
+
+logic        cur_we;
+logic [15:0] cur_addr;
+logic [31:0] cur_write_data;
+
+logic [31:0] zero_word;
+logic [31:0] one_word;
+
+logic proc1_e, proc2_e, proc3_e;
+logic proc1_done, proc2_done, proc3_done;
+// Generate request to memory
+// for reading from memory to get original message
+// for writing final computed has value
+assign mem_clk = clk;
+assign mem_addr = cur_addr + offset;
+assign mem_we = cur_we;
+assign mem_write_data = cur_write_data;
+
+enum logic [4:0] {IDLE, READ, PROCESS, WRITE} state;
 logic [31:0] hout[num_nonces];
+logic [15:0] offset; // in word address
+logic [31:0] final_out[8];
+
 
 parameter int k[64] = '{
     32'h428a2f98,32'h71374491,32'hb5c0fbcf,32'he9b5dba5,32'h3956c25b,32'h59f111f1,32'h923f82a4,32'hab1c5ed5,
@@ -22,6 +51,111 @@ parameter int k[64] = '{
 };
 
 // Student to add rest of the code here
+sha_256_processor proc1(.clk(clk), .start(proc1_e), .rstn(proc1_rstn), .count(j), .h0(h0_1), .h1(h1_1), .h2(h2_1), .h3(h3_1), .h4(h4_1),
+.h5(h5_1), .h6(h6_1), .h7(h7_1), .w0(w[0]), .w1(w[1]), .w2(w[2]), .w3(w[3]), .w4(w[4]), .w5(w[5]), .w6(w[6]), .w7(w[7]), .w8(w[8]),
+.w9(w[9]), .w10(w[10]), .w11(w[11]), .w12(w[12]), .w13(w[13]), .w14(w[14]), .w15(w[15]), .out_h0(phase1_out0), .out_h1(phase1_out1), .out_h2(phase1_out2),
+.out_h3(phase1_out3), .out_h4(phase1_out4), .out_h5(phase1_out5), .out_h6(phase1_out6), .out_h7(phase1_out7), .done(proc1_done)); 
+
+sha_256_processor proc2(.clk(clk), .start(proc2_e), .rstn(proc2_rstn), .count(j), .h0(h0_2), .h1(h1_2), .h2(h2_2), .h3(h3_2), .h4(h4_2),
+.h5(h5_2), .h6(h6_2), .h7(h7_2), .w0(w[16]), .w1(w[17]), .w2(w[18]), .w3(nonce), .w4(one_word), .w5(zero_word[0]), .w6(zero_word[1]), .w7(zero_word[2]),
+.w8(zero_word[3]), .w9(zero_word[4]), .w10(zero_word[5]), .w11(zero_word[6]), .w12(zero_word[7]), .w13(zero_word[8]), .w14(zero_word[9]),
+.w15(32'd640), .out_h0(phase2_out0), .out_h1(phase2_out1), .out_h2(phase2_out2),
+.out_h3(phase2_out3), .out_h4(phase2_out4), .out_h5(phase2_out5), .out_h6(phase2_out6), .out_h7(phase2_out7), .done(proc2_done)); 
+
+sha_256_processor proc3(.clk(clk), .start(proc3_e), .rstn(proc3_rstn), .count(j), .h0(h0_3), .h1(h1_3), .h2(h2_3), .h3(h3_3), .h4(h4_3),
+.h5(h5_3), .h6(h6_3), .h7(h7_3), .w0(phase2_out0), .w1(phase2_out1), .w2(phase2_out2), .w3(phase2_out3), .w4(phase2_out4), .w5(phase2_out5), .w6(phase2_out6),
+.w7(phase2_out7), .w8(one_word), .w9(zero_word), .w10(zero_word), .w11(zero_word), .w12(zero_word), .w13(zero_word), .w14(zero_word),
+.w15(32'd256), .out_h0(phase3_out0), .out_h1(phase3_out1), .out_h2(phase3_out2),
+.out_h3(phase3_out3), .out_h4(phase3_out4), .out_h5(phase3_out5), .out_h6(phase3_out6), .out_h7(phase3_out7), .done(proc3_done)); 
+
+
+assign nonce = j;
+
+always_ff @(posedge clk)
+begin
+	case (state)
+	IDLE:begin
+		proc1_rstn <= 0;
+		proc2_rstn <= 0;
+		proc3_rstn <= 0;
+		
+		proc1_e <= 0;
+		proc2_e <= 0;
+		proc3_e <= 0;
+		if (start)
+		begin
+				i <= 0;
+				offset <= 0;
+				cur_we <= 0;
+				cur_addr <= message_addr;
+				cur_write_date <= 32'h0;
+				state <= READ;
+				proc1_rstn <= 0;
+				proc2_rstn <= 0;
+				proc3_rstn <= 0;
+				
+				proc1_e <= 0;
+				proc2_e <= 0;
+				proc3_e <= 0;
+		end
+	end
+	
+	READ:begin
+		if (i < 20)
+			begin
+			if (i >= 1)
+				begin
+				w[i-1] <= mem_read_data;
+				end
+			i <= i+1;
+			offset <= offset+1;
+			state <= READ;
+		end
+		
+		//proc1enable
+		proc1_e <= 1;
+		
+		if (proc1_done == 1)
+		begin
+			proc1_e <= 0;
+			state <= PROCESS;
+		end
+		
+		h0_1 <= phase1_out0;
+		h1_1 <= phase1_out1;
+		h2_1 <= phase1_out2;
+		h3_1 <= phase1_out3;
+		h4_1 <= phase1_out4;
+		h5_1 <= phase1_out5;
+		h6_1 <= phase1_out6;
+		h7_1 <= phase1_out7;
+		//store proc1 data
+	end
+	
+	PROCESS:begin
+		if (j < 16)
+		begin
+			proc2_e <= 1;
+			if (proc2_done == 1)
+			begin
+				proc2_e <= 0;
+				proc3_e <= 1;
+			end
+			if (proc3_done == 1)
+			begin
+				proc3_e <= 0;
+				final_out[j] <= phase3_out0;
+			end
+		end
+	end
+	
+	//WRITE:begin
+	
+	//end
+	default:IDLE
+	endcase
+	
+end
 
 
 
