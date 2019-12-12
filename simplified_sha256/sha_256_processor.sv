@@ -46,7 +46,7 @@ enum logic [1:0] {IDLE, READ, PROCESS, WRITE} state;
 logic [31:0] a, b, c, d, e, f, g, h;
 logic [255:0] op_ret;
 logic [31:0] w [65];
-logic S0, S1;
+logic [31:0] s0, s1;
 logic [5:0] i;
 
 // SHA256 K constants
@@ -62,15 +62,14 @@ parameter int k[0:63] = '{
 };
 
 // SHA256 hash round
-function logic [255:0] sha256_op(input logic [31:0] a, b, c, d, e, f, g, h, w,
-                                 input logic [7:0] t);
+function logic [255:0] sha256_op(input logic [31:0] a, b, c, d, e, f, g, h, w, k);
     logic [31:0] S1, S0, ch, maj, t1, t2; // internal signals
 begin
     S1 = rightrotate(e, 6) ^ rightrotate(e, 11) ^ rightrotate(e, 25);
-    ch = (e && f) ^ (!e && g);
-    t1 = h + S1 + ch + k[t] + w;
+    ch = (e & f) ^ ((~e) & g);
+    t1 = ch + S1 + h + k + w;
     S0 = rightrotate(a, 2) ^ rightrotate(a, 13) ^ rightrotate(a, 22);
-    maj = (a && b) ^ (a && c) ^ (b && c);
+    maj = (a & b) ^ (a & c) ^ (b & c);
     t2 = S0 + maj;
     sha256_op = {t1 + t2, a, b, c, d + t1, e, f, g};
 end
@@ -79,7 +78,7 @@ endfunction
 function logic [31:0] rightrotate(input logic [31:0] x,
                                   input logic [ 7:0] r);
    // Student to add function implementation
-	return ((x >> r) | (x << (32-r)));
+	rightrotate = ((x >> r) | (x << (32-r)));
 endfunction
 
 
@@ -159,22 +158,22 @@ begin
 		
 			if (i > 15) 
 			begin
-				S0 = rightrotate(w[i - 15], 7) ^ rightrotate(w[i-15], 18) ^ (w[i-15] >> 3);
-				S1 = rightrotate(w[i - 2], 17) ^ rightrotate(w[i-2], 19) ^ (w[i-2] >> 10);
-				w[i] = w[i-16] + S0 + w[i-7] + S1;
+				s0 = rightrotate(w[i - 15], 7) ^ rightrotate(w[i-15], 18) ^ (w[i-15] >> 3);
+				s1 = rightrotate(w[i - 2], 17) ^ rightrotate(w[i-2], 19) ^ (w[i-2] >> 10);
+				w[i] = w[i-16] + s0 + w[i-7] + s1;
 			end
 			
 			
-			op_ret = sha256_op(a, b, c, d, e, f, g, h, w[i], i);
+			{a,b,c,d,e,f,g,h} = sha256_op(a, b, c, d, e, f, g, h, w[i], k[i]);
 			
-			a = op_ret[31:0];
-			b = op_ret[63:32];
-			c = op_ret[95:64];
-			d = op_ret[127:96];
-			e = op_ret[159:128];
-			f = op_ret[191:160];
-			g = op_ret[223:192];
-			h = op_ret[255:224];
+			//h = op_ret[31:0];
+			//g = op_ret[63:32];
+			//f = op_ret[95:64];
+			//e = op_ret[127:96];
+			//d = op_ret[159:128];
+			//c = op_ret[191:160];
+			//b = op_ret[223:192];
+			//a = op_ret[255:224];
 			
 			i = i + 1;
 			state = PROCESS;		
@@ -184,20 +183,21 @@ begin
 		else
 		begin
 			state = WRITE;
+			done = 1;
 		end
 		
 		
 	end
 	
 	WRITE:begin
-		out_h0 = a;
-		out_h1 = b;
-		out_h2 = c;
-		out_h3 = d;
-		out_h4 = e;
-		out_h5 = f;
-		out_h6 = g;
-		out_h7 = h;
+		out_h0 =h0+a;
+		out_h1 = h1+b;
+		out_h2 = h2+c;
+		out_h3 = h3+d;
+		out_h4 = h4+e;
+		out_h5 = h5+f;
+		out_h6 = h6+g;
+		out_h7 = h7+h;
 		
 		done = 1;
 		i = 0;

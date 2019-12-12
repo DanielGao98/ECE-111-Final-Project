@@ -48,8 +48,8 @@ assign mem_we = cur_we;
 assign mem_write_data = cur_write_data;
 
 sha_256_processor proc(.clk(clk), .start(proc_e), .rstn(proc_rstn), .count(j), .h0(h0), .h1(h1), .h2(h2), .h3(h3), .h4(h4),
-.h5(h5), .h6(h6), .h7(h7), .w0(w[1]), .w1(w[2]), .w2(w[3]), .w3(w[4]), .w4(w[5]), .w5(w[6]), .w6(w[7]), .w7(w[8]), .w8(w[9]),
-.w9(w[10]), .w10(w[11]), .w11(w[12]), .w12(w[13]), .w13(w[14]), .w14(w[15]), .w15(w[16]), .out_h0(dig_0), .out_h1(dig_1), .out_h2(dig_2),
+.h5(h5), .h6(h6), .h7(h7), .w0(w[0]), .w1(w[1]), .w2(w[2]), .w3(w[3]), .w4(w[4]), .w5(w[5]), .w6(w[6]), .w7(w[7]), .w8(w[8]),
+.w9(w[9]), .w10(w[10]), .w11(w[11]), .w12(w[12]), .w13(w[13]), .w14(w[14]), .w15(w[15]), .out_h0(dig_0), .out_h1(dig_1), .out_h2(dig_2),
 .out_h3(dig_3), .out_h4(dig_4), .out_h5(dig_5), .out_h6(dig_6), .out_h7(dig_7), .done(proc_done)); 
 
 // SHA-256 FSM 
@@ -105,15 +105,40 @@ begin
 			state <= WRITE;
 		end
 		
-		else if (i <= 16)
+		else if (j == 0 && i < 16)
 		begin
-			w[i] <= mem_read_data;
+			if (i >= 1)
+				begin
+				w[i-1] <= mem_read_data;
+				end
 			i <= i+1;
 			offset <= offset+1;
 			state <= BLOCK;
 		end
+		
+		else if (j == 1 && i <= 4)
+		begin
+			if (i >= 1)
+				begin
+				w[i-1] <= mem_read_data;
+				end
+			w[4] = 32'b1
+			w[5] = 32'b0;
+			w[6] = 32'b0;
+			w[7] = 32'b0;
+			w[8] = 32'b0;
+			w[9] = 32'b0;
+			w[10] = 32'b0;
+			w[11] = 32'b0;
+			w[12] = 32'b0;
+			w[13] = 32'b0;
+			w[14] = 32'b0;
+			w[15] = 32'b280;
+		end
+		
 		else
 		begin
+			w[i-1] <= mem_read_data;
 			i <= 0;
 			state <= COMPUTE;  
 		end
