@@ -2,7 +2,7 @@ module sha_256_processor(
 	input logic clk,
 	input logic start,
 	input logic rstn,
-	input logic count,
+	input logic [1:0] count,
 	
 	input logic[31:0] h0,
 	input logic[31:0] h1,
@@ -47,7 +47,7 @@ logic [31:0] a, b, c, d, e, f, g, h;
 logic [255:0] op_ret;
 logic [31:0] w [65];
 logic [31:0] s0, s1;
-logic [5:0] i;
+logic [31:0] i;
 
 // SHA256 K constants
 parameter int k[0:63] = '{
@@ -92,23 +92,23 @@ begin
 	else case (state)
 	IDLE:begin
 		done = 0;
-		out_h0 = 0;
-		out_h1 = 0;
-		out_h2 = 0;
-		out_h3 = 0;
-		out_h4 = 0;
-		out_h5 = 0;
-		out_h6 = 0;
-		out_h7 = 0;
+		//out_h0 = 0;
+		//out_h1 = 0;
+		//out_h2 = 0;
+		//out_h3 = 0;
+		//out_h4 = 0;
+		//out_h5 = 0;
+		//out_h6 = 0;
+		//out_h7 = 0;
 		
-		a = 0;
-		b = 0;
-		c = 0; 
-		d = 0;
-		e = 0;
-		f = 0;
-		g = 0;
-		h = 0;
+		//a = 0;
+		//b = 0;
+		//c = 0; 
+		//d = 0;
+		//e = 0;
+		//f = 0;
+		//g = 0;
+		//h = 0;
 		
 		i = 0;
 		
@@ -117,6 +117,10 @@ begin
 		if (start)
 		begin
 			state = READ;
+		end
+		else
+		begin
+			state = IDLE;
 		end
 	end
 	
@@ -147,8 +151,14 @@ begin
 		w[14] = w14;
 		w[15] = w15;
 		
-		state = PROCESS;
-		
+		if (start)
+		begin
+			state = PROCESS;
+		end
+		else
+		begin
+			state = IDLE;
+		end
 	end
 	
 	PROCESS:begin
@@ -183,14 +193,14 @@ begin
 		else
 		begin
 			state = WRITE;
-			done = 1;
+			//done = 1;
 		end
 		
 		
 	end
 	
 	WRITE:begin
-		out_h0 =h0+a;
+		out_h0 = h0+a;
 		out_h1 = h1+b;
 		out_h2 = h2+c;
 		out_h3 = h3+d;

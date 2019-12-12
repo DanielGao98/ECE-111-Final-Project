@@ -116,24 +116,27 @@ begin
 			state <= BLOCK;
 		end
 		
-		else if (j == 1 && i <= 4)
+		else if (j == 1 && i < 4)
 		begin
 			if (i >= 1)
 				begin
 				w[i-1] <= mem_read_data;
 				end
-			w[4] = 32'b1
-			w[5] = 32'b0;
-			w[6] = 32'b0;
-			w[7] = 32'b0;
-			w[8] = 32'b0;
-			w[9] = 32'b0;
-			w[10] = 32'b0;
-			w[11] = 32'b0;
-			w[12] = 32'b0;
-			w[13] = 32'b0;
-			w[14] = 32'b0;
-			w[15] = 32'b280;
+			i <= i+1;
+			offset <= offset+1;
+			state <= BLOCK;
+			w[4] = 32'h80000000;
+			w[5] = 0;
+			w[6] = 0;
+			w[7] = 0;
+			w[8] = 0;
+			w[9] = 0;
+			w[10] = 0;
+			w[11] = 0;
+			w[12] = 0;
+			w[13] = 0;
+			w[14] = 0;
+			w[15] = 32'h00000280;
 		end
 		
 		else
@@ -176,6 +179,7 @@ begin
 		
 		if (proc_done == 1)
 		begin
+			proc_e <= 0;
 			state <= BLOCK;
 			j <= j+1;
 		end
