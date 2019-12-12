@@ -79,8 +79,8 @@ sha_256_processor proc1(.clk(clk), .start(proc1_e), .rstn(proc1_rstn), .count(j)
 .out_h3(phase1_out3), .out_h4(phase1_out4), .out_h5(phase1_out5), .out_h6(phase1_out6), .out_h7(phase1_out7), .done(proc1_done)); 
 
 sha_256_processor proc2(.clk(clk), .start(proc2_e), .rstn(proc2_rstn), .count(j), .h0(h0_2), .h1(h1_2), .h2(h2_2), .h3(h3_2), .h4(h4_2),
-.h5(h5_2), .h6(h6_2), .h7(h7_2), .w0(w[16]), .w1(w[17]), .w2(w[18]), .w3(nonce), .w4(one_word), .w5(zero_word[0]), .w6(zero_word[1]), .w7(zero_word[2]),
-.w8(zero_word[3]), .w9(zero_word[4]), .w10(zero_word[5]), .w11(zero_word[6]), .w12(zero_word[7]), .w13(zero_word[8]), .w14(zero_word[9]),
+.h5(h5_2), .h6(h6_2), .h7(h7_2), .w0(w[16]), .w1(w[17]), .w2(w[18]), .w3(nonce), .w4(one_word), .w5(zero_word), .w6(zero_word), .w7(zero_word),
+.w8(zero_word), .w9(zero_word), .w10(zero_word), .w11(zero_word), .w12(zero_word), .w13(zero_word), .w14(zero_word),
 .w15(32'd640), .out_h0(phase2_out0), .out_h1(phase2_out1), .out_h2(phase2_out2),
 .out_h3(phase2_out3), .out_h4(phase2_out4), .out_h5(phase2_out5), .out_h6(phase2_out6), .out_h7(phase2_out7), .done(proc2_done)); 
 
@@ -107,7 +107,7 @@ begin
 		
 		//nonce <= 32'b0;
 		zero_word <= 32'b0;
-		one_word <= 31'b1;
+		one_word <= 31'b10000000;
 		if (start)
 		begin
 				i <= 0;
@@ -178,10 +178,10 @@ begin
 			begin
 				proc3_e <= 0;
 				final_out[j] <= phase3_out0;
+				j <= j + 1;
 			end
 		else
 			begin
-				j <= j+1;
 				state <= PROCESS;
 			end
 		end
